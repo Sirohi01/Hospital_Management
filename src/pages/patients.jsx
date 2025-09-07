@@ -8,6 +8,8 @@
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterGender, setFilterGender] = useState('all');
+    const [expandedPatient, setExpandedPatient] = useState(null);
+    
     const fetchPatients = useCallback(async () => {
         try {
         setLoading(true);
@@ -69,6 +71,24 @@
         return colors[bloodGroup] || 'bg-gray-500';
     };
 
+    const formatAddress = (address) => {
+        if (!address) return '';
+        if (typeof address === 'string') return address;
+        if (typeof address === 'object') {
+        const parts = [];
+        if (address.street) parts.push(address.street);
+        if (address.city) parts.push(address.city);
+        if (address.state) parts.push(address.state);
+        if (address.zipCode) parts.push(address.zipCode);
+        return parts.join(', ');
+        }
+        return '';
+    };
+
+    const togglePatientDetails = (patientId) => {
+        setExpandedPatient(expandedPatient === patientId ? null : patientId);
+    };
+
     const filteredPatients = patients.filter(patient => {
         const matchesSearch = searchTerm === '' || 
         `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -128,7 +148,7 @@
 
     return (
         <div className="space-y-6">
-        
+        {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-6 rounded-2xl text-white shadow-2xl">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
             <div className="flex items-center mb-4 md:mb-0">
@@ -174,128 +194,200 @@
         {/* Patients Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredPatients.map(patient => (
-            <div key={patient._id} className="group rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden">
+            <div key={patient._id} className="group">
+                {/* Main Card */}
+                <div 
+                className={`rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden cursor-pointer ${
+                    expandedPatient === patient._id ? 'ring-4 ring-purple-300 ring-opacity-50' : ''
+                }`}
+                onClick={() => togglePatientDetails(patient._id)}
+                >
                 {/* Patient Header */}
                 <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-6 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-10 -mt-10"></div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-white bg-opacity-10 rounded-full -ml-8 -mb-8"></div>
-                
-                <div className="relative z-10">
-                    <h3 className="text-xl font-bold mb-2">{patient.firstName} {patient.lastName}</h3>
-                    <div className="flex items-center mb-2">
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    <span className="text-sm">{formatDate(patient.dob)}</span>
-                    <span className="mx-2">•</span>
-                    <span className="text-sm">{calculateAge(patient.dob)} years</span>
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-10 -mt-10"></div>
+                    <div className="absolute bottom-0 left-0 w-16 h-16 bg-white bg-opacity-10 rounded-full -ml-8 -mb-8"></div>
+                    
+                    <div className="relative z-10">
+                    <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                        <h3 className="text-xl font-bold mb-2">{patient.firstName} {patient.lastName}</h3>
+                        <div className="flex items-center mb-2">
+                            <CalendarIcon className="w-4 h-4 mr-2" />
+                            <span className="text-sm">{formatDate(patient.dob)}</span>
+                            <span className="mx-2">•</span>
+                            <span className="text-sm">{calculateAge(patient.dob)} years</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getGenderColor(patient.gender)}`}>
+                            {patient.gender}
+                            </span>
+                            {patient.bloodGroup && (
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${getBloodGroupColor(patient.bloodGroup)}`}>
+                                {patient.bloodGroup}
+                            </span>
+                            )}
+                        </div>
+                        </div>
+                        <div className="ml-4">
+                        <div className={`transform transition-transform duration-300 ${expandedPatient === patient._id ? 'rotate-180' : ''}`}>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                        </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getGenderColor(patient.gender)}`}>
-                        {patient.gender}
-                    </span>
-                    {patient.bloodGroup && (
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${getBloodGroupColor(patient.bloodGroup)}`}>
-                        {patient.bloodGroup}
-                        </span>
-                    )}
                     </div>
                 </div>
-                </div>
                 
-                <div className="p-6 space-y-4">
-                {/* Contact Information */}
-                {(patient.contactNumber || patient.email) && (
-                    <div className="bg-blue-50 p-4 rounded-xl">
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                        <PhoneIcon className="w-5 h-5 mr-2 text-blue-600" />
-                        Contact
-                    </h4>
+                {/* Basic Info (Always Visible) */}
+                <div className="p-6">
+                    <div className="space-y-3">
+                    {/* Contact Summary */}
                     {patient.contactNumber && (
-                        <p className="text-gray-700 flex items-center mb-1">
-                        <PhoneIcon className="w-4 h-4 mr-2 text-blue-500" />
-                        {patient.contactNumber}
-                        </p>
+                        <div className="flex items-center text-gray-700">
+                        <PhoneIcon className="w-4 h-4 mr-3 text-blue-500" />
+                        <span className="text-sm">{patient.contactNumber}</span>
+                        </div>
                     )}
+                    
                     {patient.email && (
-                        <p className="text-gray-700 flex items-center">
-                        <EmailIcon className="w-4 h-4 mr-2 text-blue-500" />
-                        {patient.email}
-                        </p>
+                        <div className="flex items-center text-gray-700">
+                        <EmailIcon className="w-4 h-4 mr-3 text-blue-500" />
+                        <span className="text-sm truncate">{patient.email}</span>
+                        </div>
                     )}
-                    </div>
-                )}
 
-                {/* Medical Information */}
-                {(patient.allergies || patient.medicalHistory || patient.currentMedications || patient.primaryPhysician) && (
-                    <div className="bg-green-50 p-4 rounded-xl">
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                        <MedicalIcon className="w-5 h-5 mr-2 text-green-600" />
-                        Medical Info
-                    </h4>
+                    {/* Quick Medical Info */}
                     {patient.primaryPhysician && (
-                        <p className="text-sm text-gray-700 mb-1">
-                        <span className="font-medium">Doctor:</span> {patient.primaryPhysician}
-                        </p>
-                    )}
-                    {patient.allergies && patient.allergies !== 'no' && (
-                        <p className="text-sm text-gray-700 mb-1">
-                        <span className="font-medium">Allergies:</span> {patient.allergies}
-                        </p>
-                    )}
-                    {patient.medicalHistory && patient.medicalHistory !== 'no' && patient.medicalHistory !== 'No' && (
-                        <p className="text-sm text-gray-700 mb-1">
-                        <span className="font-medium">History:</span> {patient.medicalHistory}
-                        </p>
-                    )}
-                    {patient.currentMedications && patient.currentMedications !== 'no' && (
-                        <p className="text-sm text-gray-700">
-                        <span className="font-medium">Medications:</span> {patient.currentMedications}
-                        </p>
+                        <div className="flex items-center text-gray-700">
+                        <MedicalIcon className="w-4 h-4 mr-3 text-green-500" />
+                        <span className="text-sm">Dr. {patient.primaryPhysician}</span>
+                        </div>
                     )}
                     </div>
-                )}
 
-                {/* Emergency Contact */}
-                {patient.emergencyContact && patient.emergencyContact.name && (
-                    <div className="bg-red-50 p-4 rounded-xl">
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                        <EmergencyIcon className="w-5 h-5 mr-2 text-red-600" />
-                        Emergency Contact
-                    </h4>
-                    <p className="text-gray-700 font-medium">{patient.emergencyContact.name}</p>
-                    {patient.emergencyContact.number && (
-                        <p className="text-gray-600 text-sm">{patient.emergencyContact.number}</p>
-                    )}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">
+                        Registered: {formatDate(patient.createdAt)}
+                        </span>
+                        <span className="text-xs text-purple-600 font-medium">
+                        Click for details
+                        </span>
                     </div>
-                )}
-
-                {/* Insurance */}
-                {patient.insurance && patient.insurance.provider && (
-                    <div className="bg-yellow-50 p-4 rounded-xl">
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                        <InsuranceIcon className="w-5 h-5 mr-2 text-yellow-600" />
-                        Insurance
-                    </h4>
-                    <p className="text-gray-700 font-medium">{patient.insurance.provider}</p>
-                    {patient.insurance.number && (
-                        <p className="text-gray-600 text-sm">Policy: {patient.insurance.number}</p>
-                    )}
                     </div>
-                )}
                 </div>
-                
-                {/* Footer */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-500">
-                    Registered: {formatDate(patient.createdAt)}
-                    </p>
-                    <div className="flex space-x-2">
-                    <button className="text-indigo-600 hover:text-indigo-800 text-sm font-medium transition-colors">
-                        View Details
+                </div>
+
+                {/* Expanded Details */}
+                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                expandedPatient === patient._id 
+                    ? 'max-h-screen opacity-100 mt-4' 
+                    : 'max-h-0 opacity-0'
+                }`}>
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-lg font-bold text-gray-800">Patient Details</h4>
+                    <button
+                        onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedPatient(null);
+                        }}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
                     </button>
-                    <button className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors">
-                        Edit
-                    </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Complete Contact Information */}
+                    <div className="bg-blue-50 p-4 rounded-xl">
+                        <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
+                        <PhoneIcon className="w-5 h-5 mr-2 text-blue-600" />
+                        Contact Information
+                        </h5>
+                        {patient.contactNumber && (
+                        <p className="text-gray-700 mb-2">
+                            <span className="font-medium">Phone:</span> {patient.contactNumber}
+                        </p>
+                        )}
+                        {patient.email && (
+                        <p className="text-gray-700 mb-2">
+                            <span className="font-medium">Email:</span> {patient.email}
+                        </p>
+                        )}
+                        {formatAddress(patient.address) && (
+                        <p className="text-gray-700">
+                            <span className="font-medium">Address:</span> {formatAddress(patient.address)}
+                        </p>
+                        )}
+                    </div>
+
+                    {/* Medical Information */}
+                    {(patient.allergies || patient.medicalHistory || patient.currentMedications || patient.primaryPhysician) && (
+                        <div className="bg-green-50 p-4 rounded-xl">
+                        <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
+                            <MedicalIcon className="w-5 h-5 mr-2 text-green-600" />
+                            Medical Information
+                        </h5>
+                        {patient.primaryPhysician && (
+                            <p className="text-gray-700 mb-2">
+                            <span className="font-medium">Primary Doctor:</span> Dr. {patient.primaryPhysician}
+                            </p>
+                        )}
+                        {patient.allergies && patient.allergies !== 'no' && patient.allergies !== 'No' && (
+                            <p className="text-gray-700 mb-2">
+                            <span className="font-medium">Allergies:</span> {patient.allergies}
+                            </p>
+                        )}
+                        {patient.medicalHistory && patient.medicalHistory !== 'no' && patient.medicalHistory !== 'No' && (
+                            <p className="text-gray-700 mb-2">
+                            <span className="font-medium">Medical History:</span> {patient.medicalHistory}
+                            </p>
+                        )}
+                        {patient.currentMedications && patient.currentMedications !== 'no' && patient.currentMedications !== 'No' && (
+                            <p className="text-gray-700">
+                            <span className="font-medium">Current Medications:</span> {patient.currentMedications}
+                            </p>
+                        )}
+                        </div>
+                    )}
+
+                    {/* Emergency Contact */}
+                    {patient.emergencyContact && patient.emergencyContact.name && (
+                        <div className="bg-red-50 p-4 rounded-xl">
+                        <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
+                            <EmergencyIcon className="w-5 h-5 mr-2 text-red-600" />
+                            Emergency Contact
+                        </h5>
+                        <p className="text-gray-700 font-medium mb-1">{patient.emergencyContact.name}</p>
+                        {patient.emergencyContact.number && (
+                            <p className="text-gray-600">Phone: {patient.emergencyContact.number}</p>
+                        )}
+                        {patient.emergencyContact.relationship && (
+                            <p className="text-gray-600">Relationship: {patient.emergencyContact.relationship}</p>
+                        )}
+                        </div>
+                    )}
+
+                    {/* Insurance Information */}
+                    {patient.insurance && patient.insurance.provider && (
+                        <div className="bg-yellow-50 p-4 rounded-xl">
+                        <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
+                            <InsuranceIcon className="w-5 h-5 mr-2 text-yellow-600" />
+                            Insurance Details
+                        </h5>
+                        <p className="text-gray-700 font-medium mb-1">{patient.insurance.provider}</p>
+                        {patient.insurance.number && (
+                            <p className="text-gray-600 mb-1">Policy Number: {patient.insurance.number}</p>
+                        )}
+                        {patient.insurance.groupNumber && (
+                            <p className="text-gray-600">Group Number: {patient.insurance.groupNumber}</p>
+                        )}
+                        </div>
+                    )}
                     </div>
                 </div>
                 </div>
